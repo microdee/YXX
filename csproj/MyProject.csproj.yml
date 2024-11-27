@@ -1,0 +1,20 @@
+- { project, Sdk: Microsoft.NET.Sdk }:
+
+  - PropertyGroup:
+    - OutputType: Exe
+    - TargetFramework: net8.0
+    - RootNamespace:
+    - NoWarn: CS0649;CS0169;CA1050;CA1822;CA2211;IDE1006
+    - NukeRootDirectory: ..
+    - NukeScriptDirectory: ..
+    - NukeTelemetryVersion: 1
+    - IsPackable: false
+    - Nullable: enable
+    - langversion: 12
+
+  - ItemGroup:
+    - { PackageReference, Include: md.Nuke.Unreal, Version: 2.1.1 }
+    - { PackageReference, Include: Nuke.Common, Version: 8.1.4 }
+
+  - ItemGroup:
+    - { Compile, Include: ../**/*.nuke.cs }

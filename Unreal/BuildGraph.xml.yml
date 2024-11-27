@@ -1,0 +1,287 @@
+# <?xml version='1.0' ?>
+
+# This is a simplified version of https://src.redpoint.games/redpointgames/unreal-engine-scripts/-/blob/main/Lib/BuildGraph_Project.xml?ref_type=heads
+# Demonstrating only how a DSL which never ever should have been XML in the first place can be made more digestable with XYXC
+- ? { BuildGraph,
+      xmlns: http://www.epicgames.com/BuildGraph,
+      xmlns:xsi: http://www.w3.org/2001/XMLSchema-instance,
+      xsi:schemaLocation: http://www.epicgames.com/BuildGraph ./Schema.xsd,
+    }
+  :
+  # Environment options
+  - { Option, Name: BuildScriptsPath,    Restrict: ".*",       DefaultValue: "",    Description: Path to the build scripts folder }
+  - { Option, Name: BuildScriptsLibPath, Restrict: ".*",       DefaultValue: "",    Description: Path to the build scripts library folder }
+  - { Option, Name: EnginePath,          Restrict: ".*",       DefaultValue: "",    Description: Path to the engine }
+  - { Option, Name: TempPath,            Restrict: ".*",       DefaultValue: "",    Description: Path to the temporary directory (must not contain spaces) }
+  - { Option, Name: ProjectRoot,         Restrict: ".*",       DefaultValue: "",    Description: Path to the directory that contains the .uproject }
+  - { Option, Name: RepositoryRoot,      Restrict: ".*",       DefaultValue: "",    Description: Path to the directory that contains all the project folders and BuildScriptsExtra }
+
+  # General options
+  - { Option, Name: UProjectPath,        Restrict: ".*",       DefaultValue: "",    Description: Path to the .uproject file }
+  - { Option, Name: Distribution,        Restrict: ".*",       DefaultValue: "",    Description: The distribution being built }
+  - { Option, Name: IsUnrealEngine5,     Restrict: true|false, DefaultValue: false, Description: If true, this is an Unreal Engine 5 project }
+
+  # etc...
+
+  - { EnvVar, Name: AppData }
+  - { EnvVar, Name: HOME }
+
+  - { Property, Name: GameBinaries,        Value: "" }
+  - { Property, Name: ClientBinaries,      Value: "" }
+  - { Property, Name: ServerBinaries,      Value: "" }
+  - { Property, Name: GameCookedContent,   Value: "" }
+  - { Property, Name: ClientCookedContent, Value: "" }
+  - { Property, Name: ServerCookedContent, Value: "" }
+  - { Property, Name: GameStaged,          Value: "" }
+  - { Property, Name: ClientStaged,        Value: "" }
+  - { Property, Name: ServerStaged,        Value: "" }
+  - { Property, Name: GauntletTasks,       Value: "" }
+  - { Property, Name: CustomTasks,         Value: "" }
+  - { Property, Name: DeploymentTasks,     Value: "" }
+  - { Property,
+      Name: AdditionalArguments, Value: "",
+      If: "'$(StrictIncludes)' == 'false'",
+    }
+  - { Property,
+      Name: AdditionalArguments, Value: " -iwyu -NoPCH -NoSharedPCH -DisableUnity",
+      If: "'$(StrictIncludes)' == 'true'",
+    }
+
+  # Targets that we will execute on a Windows machine
+  - { Agent, Name: Windows Build, Type: Win64, If: "'$(ExecuteBuild)' == 'true'" }:
+
+    # Compile the editor for Windows (necessary for cook later)
+    - { Node, Name: Compile $(EditorTarget) Win64, Produces: "#EditorBinaries" }:
+      - { ForEach, Name: PrepareCustomCompileScript, Values: $(PrepareCustomCompileScripts) }:
+        - { Spawn, Exe: powershell.exe, Arguments: -ExecutionPolicy Bypass "$(RepositoryRoot)\$(PrepareCustomCompileScript)" }
+      - { Compile
+          Target: $(EditorTarget),
+          Platform: Win64,
+          Configuration: Development,
+          Tag: "#EditorBinaries",
+          Arguments: -Project="$(UProjectPath)" $(AdditionalArguments),
+          AllowParallelExecutor: false,
+        }
+    
+    # Compile the client (targeting the Client target, not Game)
+    - { ForEach, Name: TargetName, Values: $(GameTargets) }:
+      - { ForEach, Name: TargetPlatform, Values: $(GameTargetPlatforms) }:
+        - { ForEach, Name: TargetConfiguration, Values: $(GameConfigurations) }:
+          - ? { Node,
+                Name: Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration),
+                Produces: "#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)",
+                If: "!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')",
+              }
+            :
+            - { ForEach, Name: PrepareCustomCompileScript, Values: $(PrepareCustomCompileScripts) }:
+              - { Spawn, Exe: powershell.exe, Arguments: -ExecutionPolicy Bypass "$(RepositoryRoot)\$(PrepareCustomCompileScript)" }
+            - { Compile,
+                Target: $(TargetName),
+                Platform: $(TargetPlatform),
+                Configuration: $(TargetConfiguration),
+                Tag: "#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)",
+                Arguments: -Project="$(UProjectPath)" $(AdditionalArguments),
+              }
+            - { Tag,
+                Files: "#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)",
+                Filter: "*.target",
+                With: "#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)",
+              }
+            - { SanitizeReceipt, Files: "#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" }
+          - { Property, Name: GameBinaries, Value: $(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration); }
+
+  # Targets that we will execute on a Windows machine
+  - { Agent, Name: Windows Pak and Stage, Type: Win64, If: "'$(ExecuteBuild)' == 'true'" }:
+
+    # Pak and stage the game (targeting the Game target, not Client)
+    - { ForEach, Name: TargetName, Values: $(GameTargets) }:
+      - { ForEach, Name: TargetPlatform, Values: $(GameTargetPlatforms) }:
+        - { ForEach, Name: TargetConfiguration, Values: $(GameConfigurations) }:
+          - ? { Node,
+                Name: Pak and Stage $(TargetName) $(TargetPlatform) $(TargetConfiguration),
+                Requires: "#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#GameCookedContent_$(TargetPlatform)",
+                Produces: "#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)",
+                If: "!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')",
+              }
+            :
+            - { Property, Name: StagePlatform, Value: $(TargetPlatform) }
+            - { Property, Name: StagePlatform, Value: Windows, If: "'$(StagePlatform)' == 'Win64'" }
+            - { Property,
+                Name: StagePlatform,
+                Value: $(StagePlatform)NoEditor,
+                If: (('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and ('$(IsUnrealEngine5)' == 'false'),
+              }
+            - { Property, Name: DisableCodeSign, Value: "" }
+            - { Property,
+                Name: DisableCodeSign,
+                Value: "-NoCodeSign",
+                If: ('$(TargetPlatform)' == 'Win64') or ('$(TargetPlatform)' == 'Mac') or ('$(TargetPlatform)' == 'Linux'),
+            }
+            - { Property, Name: PackageFlag, Value: "" }
+            - { Property,
+                Name: PackageFlag,
+                Value: "-package",
+                If: ('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android'),
+              }
+            - { WriteTextFile,
+                File: $(StageDirectory)\Game_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_RunStage.ps1,
+
+                # notice how attributes can be multiline texts
+                # however because | and > block scalar indicators are not allowed in flow scalars
+                # we rely on double quoted multiline text, which in the end renders newlines and
+                # leading whitespaces as simply spaces. So to preserve new lines \n is required at
+                # the end, however not putting \n at the end can also be used for our advantage fo
+                # example here it makes the long list of command line arguments more readable by writing
+                # them on new lines. Two consecutive new lines also translates to one new line.
+                # Unfortunately double quotes and back-slashes need to be eescaped.
+                Text: "
+                  param() \n
+                  $env:uebp_UATMutexNoWait = \"1\" \n
+                  $env:IsBuildMachine = \"1\" \n
+                  & \"$(BuildScriptsLibPath)\\Internal_RunUAT.ps1\"
+                      -UATEnginePath \"$(EnginePath)\"
+                       BuildCookRun
+                    \"-project=$(UProjectPath)\"
+                      -nop4 $(DisableCodeSign)
+                    \"-platform=$(TargetPlatform)\"
+                    \"-clientconfig=$(TargetConfiguration)\"
+                      -SkipCook
+                      -cook
+                      -pak $(PackageFlag)
+                      -stage
+                    \"-stagingdirectory=$(StageDirectory)\"
+                      -unattended
+                      -stdlog
+
+                  exit $LastExitCode
+                  ",
+              }
+            - { Spawn, Exe: powershell.exe, Arguments: -ExecutionPolicy Bypass "$(StageDirectory)\Game_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_RunStage.ps1" }
+            - { Tag,
+                BaseDir: $(StageDirectory)\$(StagePlatform),
+                Files: ...,
+                With: "#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" ,
+              }
+            - { Tag,
+                BaseDir: $(ProjectRoot)\Binaries\$(TargetPlatform),
+                Files: ...,
+                With: "#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)",
+                If: ('$(TargetPlatform)' == 'Android') or ('$(TargetPlatform)' == 'IOS'),
+              }
+          - { Property,
+              Name: GameStaged,
+              Value: $(GameStaged)#GameStaged_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);,
+              If: "!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"
+            }
+
+  - { Agent, Name: Windows Gauntlet, Type: Win64, If: "'$(ExecuteTests)' == 'true'" }:
+
+    # Run all the defined Gauntlet tests when their dependencies are ready
+    - { ForEach, Name: GauntletPairs, Values: $(GauntletTests), Separator: "+" }:
+      - { Property, Name: GauntletTestName, Value: "" }
+      - { Property, Name: GauntletTestRequirements, Value: "" }
+      - { ForEach, Name: GauntletPair, Values: $(GauntletPairs), Separator: "~" }:
+        - switch:
+          - { Case, If: "'$(GauntletTestName)' == ''" }:
+            - { Property, Name: GauntletTestName, Value: $(GauntletPair) }
+          - Default:
+            - { Property, Name: GauntletTestRequirements, Value: $(GauntletPair) }
+      
+      # The XML DSL didn't account for repetition? YAML anchors got you
+      - { Node, Name: Gauntlet $(GauntletTestName), Requires: $(GauntletTestRequirements), If: "'$(ExecuteBuild)' == 'true'" }: &Windows.Gauntlet.GeuntletNode
+        - { WriteTextFile,
+            File: $(TempPath)\RunGauntlet.ps1,
+            Text: "
+              param() \n
+              & \"$(BuildScriptsPath)\\Lib\\Test_RunGauntletTestFromBuildGraph.ps1\"
+                -EnginePath \"$(EnginePath)\"
+                -Distribution \"$(Distribution)\"
+                -TestName \"$(GauntletTestName)\"
+
+              exit $LastExitCode
+              ",
+          }
+        - { Spawn, Exe: powershell.exe, Arguments: -ExecutionPolicy Bypass "$(TempPath)\RunGauntlet.ps1" }
+      - { Node, Name: Gauntlet $(GauntletTestName), If: "'$(ExecuteBuild)' == 'false'" }: *Windows.Gauntlet.GeuntletNode
+      - { Property, Name: GauntletTasks, Value: $(GauntletTasks)Gauntlet $(GauntletTestName); }
+
+  - { Agent, Name: Deployment, Type: Win64 }:
+    - { ForEach, Name: Entry, Values: $(DeploymentSteam), Separator: "+" }:
+      - { Property, Name: NodeName,             Value: "" }
+      - { Property, Name: Manual,               Value: "" }
+      - { Property, Name: PackageType,          Value: "" }
+      - { Property, Name: PackageTarget,        Value: "" }
+      - { Property, Name: PackagePlatform,      Value: "" }
+      - { Property, Name: PackageConfiguration, Value: "" }
+      - { Property, Name: SteamAppID,           Value: "" }
+      - { Property, Name: SteamDepotID,         Value: "" }
+      - { Property, Name: SteamChannel,         Value: "" }
+      - { ForEach, Name: EntryValue, Values: $(Entry) }:
+        - Switch:
+          - { Case, If: "'$(NodeName)' == ''" }:             [ { Property, Name: NodeName,             Value: $(EntryValue) } ]
+          - { Case, If: "'$(Manual)' == ''" }:               [ { Property, Name: Manual,               Value: $(EntryValue) } ]
+          - { Case, If: "'$(PackageType)' == ''" }:          [ { Property, Name: PackageType,          Value: $(EntryValue) } ]
+          - { Case, If: "'$(PackageTarget)' == ''" }:        [ { Property, Name: PackageTarget,        Value: $(EntryValue) } ]
+          - { Case, If: "'$(PackagePlatform)' == ''" }:      [ { Property, Name: PackagePlatform,      Value: $(EntryValue) } ]
+          - { Case, If: "'$(PackageConfiguration)' == ''" }: [ { Property, Name: PackageConfiguration, Value: $(EntryValue) } ]
+          - { Case, If: "'$(SteamAppID)' == ''" }:           [ { Property, Name: SteamAppID,           Value: $(EntryValue) } ]
+          - { Case, If: "'$(SteamDepotID)' == ''" }:         [ { Property, Name: SteamDepotID,         Value: $(EntryValue) } ]
+          - Default:                                         [ { Property, Name: SteamChannel,         Value: $(EntryValue) } ]
+      - { Property, Name: ManualMode, Value: "Auto" }
+      - { Property, Name: ManualMode, Value: "Manual", If: "'$(Manual)' == 'true'" }
+      - ? { Node,
+            Name: Deploy $(ManualMode) $(NodeName),
+            Requires: "#$(PackageType)Staged_$(PackageTarget)_$(PackagePlatform)_$(PackageConfiguration)"
+          }
+        :
+        - { Property,
+            Name: StagePlatform,
+            Value: $(PackagePlatform)
+          }
+        - { Property,
+            Name: StagePlatform,
+            Value: Windows,
+            If: "'$(StagePlatform)' == 'Win64'"
+          }
+        - { Property,
+            Name: StagePlatform,
+            Value: $(StagePlatform)NoEditor,
+            If: ('$(PackageType)' == 'Game' and ('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')) and '$(IsUnrealEngine5)' == 'false'
+          }
+        - { Property,
+            Name: StagePlatform,
+            Value: $(StagePlatform)Client,
+            If: ('$(PackageType)' == 'Client' and (('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')))
+          }
+        - { Property,
+            Name: StagePlatform,
+            Value: $(StagePlatform)Server,
+            If: ('$(PackageType)' == 'Server' and (('$(StagePlatform)' == 'Windows') or ('$(StagePlatform)' == 'Mac') or ('$(StagePlatform)' == 'Linux')))
+          }
+        - { Spawn,
+            Exe: "powershell.exe",
+            Arguments:
+              -ExecutionPolicy Bypass -File "$(RepositoryRoot)/$(CustomDeploymentScriptPath)"
+                -PackageType "$(PackageType)"
+                -PackageTarget "$(PackageTarget)"
+                -PackagePlatform "$(PackagePlatform)"
+                -PackageConfiguration "$(PackageConfiguration)"
+                -EnginePath "$(EnginePath)"
+                -StageDirectory "$(StageDirectory)"
+                -PackageDirectory "$(StageDirectory)/$(StagePlatform)"
+          }
+      - { Property, Name: DeploymentTasks, Value: $(DeploymentTasks)Deploy $(ManualMode) $(NodeName); }
+
+  # Targets that we will execute on a Windows machine
+  - { Agent, Name: Windows Tag, Type: Win64 }:
+
+    # Node that we just use to easily execute all required nodes
+    - { Node,
+        Requires:
+          $(GameStaged);
+          $(ClientStaged);
+          $(ServerStaged);
+          $(GauntletTasks);
+          $(CustomTasks);
+          $(DeploymentTasks)
+      }

@@ -1,0 +1,21 @@
+# <!DOCTYPE html>
+- { html, lang: en }:
+  - head:
+    - { meta, charset: utf-8 }
+    - { meta, property: og:title, content: mcro.de }
+    - { meta, property: twitter:title, content: mcro.de }
+    - { meta, name: viewport, content: "width=device-width, initial-scale=1" }
+    - { link, rel: stylesheet, href: https://fonts.googleapis.com/css2?family=Fira+Code:wght@300&display=swap }
+    - { link, rel: stylesheet, href: /css/vars.css }
+
+    - style: |
+        body {
+          background-color: red;
+        }
+        
+    - title: mcro.de
+  - body:
+    - { div, id: root }
+    - { div, id: glitch-cover }
+    - p: Lorem ipsum dolor sit amet consectetur
+    - { script, type: module, src: /components/index.jsx }

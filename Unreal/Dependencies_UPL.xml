@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	See the documentation of UPL at
+	https://docs.unrealengine.com/en-US/SharingAndReleasing/Mobile/UnrealPluginLanguage/index.html
+
+	View template files which are rendered with UPL generated data:
+	GameActivity:    https://github.com/EpicGames/UnrealEngine/blob/4.27/Engine/Build/Android/Java/src/com/epicgames/ue4/GameActivity.java.template
+-->
+
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<init>
+		<log text="AndroidUtils JavaUtils UPL"/>
+		<trace enable="true"/>
+	</init>
+
+	<prebuildCopies>
+		<copyDir src="$S(PluginDir)/Private/Android/Java" dst="$S(BuildDir)" />
+	</prebuildCopies>
+
+	<!-- proguard /-->
+	<proguardAdditions>
+		<insert>
+			<!-- Disabling class obfuscation -->
+			-dontwarn com.realworldone.**
+			-keep class com.realworldone.** { *; }
+			-keep interface com.realworldone.** { *; }
+
+			-dontwarn androidx.**
+			-keep class androidx.** { *; }
+			-keep interface androidx.** { *; }
+		</insert>
+	</proguardAdditions>
+
+	<!-- AndroidManifest.xml /-->
+	<androidManifestUpdates>
+		<!-- application /-->
+		<addAttribute tag="application" name="android:networkSecurityConfig" value="@xml/network_security_config"/>
+	</androidManifestUpdates>
+
+	<!-- gradle -->
+		<!-- \gradle\gradle.properties /-->
+		<gradleProperties>
+			<insert>
+				android.useAndroidX=true
+			</insert>
+		</gradleProperties>
+	
+		<!-- \gradle\app\build.gradle /-->
+		<buildGradleAdditions>
+			<insert>
+				android {
+					compileOptions {
+						sourceCompatibility JavaVersion.VERSION_1_8
+						targetCompatibility JavaVersion.VERSION_1_8
+					}
+				}
+				ext {
+					android {
+						buildTypes {
+							release {
+								minifyEnabled false
+							}
+						}
+					}
+				}
+
+				// Manifold Javac plugin http://manifold.systems/android.html
+				tasks.withType(JavaCompile) {
+					options.compilerArgs += ['-Xplugin:Manifold']
+				}
+	
+				repositories {
+					google()
+					mavenCentral()
+					maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+				}
+	
+				dependencies {
+					<!-- implementation 'androidx.activity:activity:1.3.1' -->
+					<!-- implementation 'androidx.fragment:fragment:1.5.0' -->
+					implementation 'androidx.core:core:1.6.0'
+					implementation 'androidx.annotation:annotation:1.0.0'
+					implementation 'commons-io:commons-io:2.11.0'
+					implementation 'org.riversun:java-promise:1.1.0'
+
+					//// For Manifold http://manifold.systems/android.html
+					annotationProcessor group: 'systems.manifold', name: 'manifold-ext', version: '2022.1.38'
+	
+					// Core
+					compileOnly 'systems.manifold:manifold:2022.1.38'
+					implementation 'systems.manifold:manifold-rt:2022.1.38'
+	
+					// Extensions https://github.com/manifold-systems/manifold/tree/master/manifold-deps-parent/manifold-ext
+					compileOnly 'systems.manifold:manifold-ext:2022.1.38'
+					implementation 'systems.manifold:manifold-ext-rt:2022.1.38'
+	
+					// Props https://github.com/manifold-systems/manifold/tree/master/manifold-deps-parent/manifold-props
+					compileOnly 'systems.manifold:manifold-props:2022.1.38'
+					implementation 'systems.manifold:manifold-props-rt:2022.1.38'
+	
+					// String Interpolation https://github.com/manifold-systems/manifold/tree/master/manifold-deps-parent/manifold-strings
+					compileOnly 'systems.manifold:manifold-strings:2022.1.38'
+				
+					// Tuples https://github.com/manifold-systems/manifold/tree/master/manifold-deps-parent/manifold-tuple
+					implementation 'systems.manifold:manifold-tuple-rt:2022.1.38'
+	
+					// Collections https://github.com/manifold-systems/manifold/tree/master/manifold-deps-parent/manifold-collections
+					implementation 'systems.manifold:manifold-collections:2022.1.38'
+				}
+			</insert>
+		</buildGradleAdditions>
+	
+		<!-- \gradle\build.gradle -->
+			<baseBuildGradleAdditions>
+				<insert>
+					allprojects {
+						def mappings = [
+							'android.support.annotation': 'androidx.annotation',
+							'android.arch.lifecycle': 'androidx.lifecycle',
+							'android.support.v4.app.NotificationCompat': 'androidx.core.app.NotificationCompat',
+							'android.support.v4.app.ActivityCompat': 'androidx.core.app.ActivityCompat',
+							'android.support.v4.content.ContextCompat': 'androidx.core.content.ContextCompat',
+							'android.support.v4.app.NotificationManagerCompat': 'androidx.core.app.NotificationManagerCompat',
+							'android.support.v4.content.FileProvider': 'androidx.core.content.FileProvider',
+							'android.support.v13.app.FragmentCompat': 'androidx.legacy.app.FragmentCompat',
+							'android.arch.lifecycle.Lifecycle': 'androidx.lifecycle.Lifecycle',
+							'android.arch.lifecycle.LifecycleObserver': 'androidx.lifecycle.LifecycleObserver',
+							'android.arch.lifecycle.OnLifecycleEvent': 'androidx.lifecycle.OnLifecycleEvent',
+							'android.arch.lifecycle.ProcessLifecycleOwner': 'androidx.lifecycle.ProcessLifecycleOwner',
+						]
+		
+						beforeEvaluate { project ->
+							project.rootProject.projectDir.traverse(type: groovy.io.FileType.FILES, nameFilter: ~/.*\.java$/) { f ->
+								mappings.each { entry ->
+									if (f.getText('UTF-8').contains(entry.key)) {
+										println "Updating ${entry.key} to ${entry.value} in file ${f}"
+										ant.replace(file: f, token: entry.key, value: entry.value)
+									}
+								}
+							}
+						}
+					}
+				</insert>
+			</baseBuildGradleAdditions>
+		<!-- /\gradle\build.gradle -->
+	<!-- /gradle -->
+</root>
