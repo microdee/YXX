@@ -1,5 +1,4 @@
-- { project, Sdk: Microsoft.NET.Sdk }:
-
+- project: { Sdk: Microsoft.NET.Sdk }:
   - PropertyGroup:
     - OutputType: Exe
     - TargetFramework: net8.0
@@ -13,8 +12,8 @@
     - langversion: 12
 
   - ItemGroup:
-    - { PackageReference, Include: md.Nuke.Unreal, Version: 2.1.1 }
-    - { PackageReference, Include: Nuke.Common, Version: 8.1.4 }
+    - PackageReference: {Include: md.Nuke.Unreal, Version: 2.1.1 }
+    - PackageReference: {Include: Nuke.Common, Version: 8.1.4 }
 
   - ItemGroup:
-    - { Compile, Include: ../**/*.nuke.cs }
+    - Compile: { Include: ../**/*.nuke.cs }
