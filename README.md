@@ -7,7 +7,6 @@ Not to be confused with *Abbotsford International Airport*
 - [Specification](#specification)
   - [Introduction](#introduction)
   - [Tags and Attributes](#tags-and-attributes)
-    - [Tangent on complex keys](#tangent-on-complex-keys)
     - [Anatomy of YXX tag objects](#anatomy-of-yxx-tag-objects)
   - [Text rendering](#text-rendering)
   - [YAML \<-\> XML feature parity](#yaml---xml-feature-parity)
@@ -65,8 +64,6 @@ As you can notice tags are mapped to objects in arrays (including the root node 
 Things get slightly more complicated when tag attributes are introduced. Now XML attributes also must be unique so those can easily map to YAML objects, however YAML doesn't have a syntactical separation for "object attributes", "object type" and "object contents" like how XML does...
 
 ## Tags and Attributes
-
-### Tangent on complex keys
 
 Or is there? [cue vsauce music]
 
