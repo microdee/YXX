@@ -8,7 +8,7 @@ extern "C" {
 
 namespace yxx
 {
-    YAML::Node Convert(pugi::xml_document const& xmlDoc);
+    void Convert(YAML::Emitter& o, pugi::xml_node const& node);
 }
 
 #ifdef __cplusplus
