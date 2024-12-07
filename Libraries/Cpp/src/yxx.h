@@ -8,7 +8,15 @@ extern "C" {
 
 namespace yxx
 {
-    void Convert(YAML::Emitter& o, pugi::xml_node const& node);
+    struct X2YArguments
+    {
+        int MaxAttributesInFlow = 5;
+    };
+
+    /**
+     * @todo: make this into << operator as well
+     */
+    void Convert(YAML::Emitter& o, pugi::xml_node const& node, X2YArguments const& args = {});
 }
 
 #ifdef __cplusplus
