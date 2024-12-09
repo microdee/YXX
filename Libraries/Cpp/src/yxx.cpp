@@ -119,4 +119,16 @@ namespace yxx
                 Convert(o, child, args);
         }
     }
+
+    YAML::Emitter& operator << (YAML::Emitter& o, pugi::xml_node const& node)
+    {
+        Convert(o, node);
+        return o;
+    }
+
+    YAML::Emitter& operator << (YAML::Emitter& o, EmitNode&& node)
+    {
+        Convert(o, node.Node, node.Args);
+        return o;
+    }
 }
