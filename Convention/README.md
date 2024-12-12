@@ -307,7 +307,6 @@ Well YXX doesn't try to replace XML where XML shines anyway so moving on. Speaki
 ```
 
 </td>
-<td> -> </td>
 <td>
 
 ```xml
