@@ -1,7 +1,12 @@
-# <?xml version='1.0' ?>
+- <?xml: { version: 1.0, encoding: utf-8 }
 
-# This is a simplified version of https://src.redpoint.games/redpointgames/unreal-engine-scripts/-/blob/main/Lib/BuildGraph_Project.xml?ref_type=heads
-# Demonstrating only how a DSL which never ever should have been XML in the first place can be made more digestable with YXX
+# In order to preserve XML comments a special key is used. Many YAML parsers/emitters will ignore
+# YAML comments because they're ambiguous where they might fit into the DOM hierarchy, whereas in
+# XML that is clear
+- //: |
+    This is a simplified version of https://src.redpoint.games/redpointgames/unreal-engine-scripts/-/blob/main/Lib/BuildGraph_Project.xml?ref_type=heads
+    Demonstrating only how a DSL which never ever should have been XML in the first place can be
+    made more digestable with YXX
 # This also demonstrates how advanced YAML anchors, references and unions can avoid repetition
 - BuildGraph:
     xmlns: http://www.epicgames.com/BuildGraph
@@ -21,7 +26,7 @@
     - &game_receipts [ "#GameReceipts_", *game_name ]
     - &game_staged [ "#GameStaged", *game_name ]
   :
-  # Environment options
+  - //: Environment options
   - Option: { <<: *option, Name: BuildScriptsPath,    Description: Path to the build scripts folder }
   - Option: { <<: *option, Name: BuildScriptsLibPath, Description: Path to the build scripts library folder }
   - Option: { <<: *option, Name: EnginePath,          Description: Path to the engine }
@@ -29,12 +34,12 @@
   - Option: { <<: *option, Name: ProjectRoot,         Description: Path to the directory that contains the .uproject }
   - Option: { <<: *option, Name: RepositoryRoot,      Description: Path to the directory that contains all the project folders and BuildScriptsExtra }
 
-  # General options
+  - //: General options
   - Option: { <<: *option, Name: UProjectPath,        Description: Path to the .uproject file }
   - Option: { <<: *option, Name: Distribution,        Description: The distribution being built }
   - Option: { <<: *option, Name: IsUnrealEngine5,     Restrict: true|false, DefaultValue: false, Description: If true, this is an Unreal Engine 5 project }
 
-  # etc...
+  - //: etc...
 
   - EnvVar: { Name: AppData }
   - EnvVar: { Name: HOME }
@@ -60,9 +65,9 @@
       Value: " -iwyu -NoPCH -NoSharedPCH -DisableUnity"
       If: "'$(StrictIncludes)' == 'true'"
 
-  # Targets that we will execute on a Windows machine
+  - //: Targets that we will execute on a Windows machine
   - Agent: { Name: Windows Build, Type: Win64, If: "'$(ExecuteBuild)' == 'true'" }:
-    # Compile the editor for Windows (necessary for cook later)
+    - //: Compile the editor for Windows (necessary for cook later)
     - Node: { Name: Compile $(EditorTarget) Win64, Produces: "#EditorBinaries" }:
       - ForEach: { Name: PrepareCustomCompileScript, Values: $(PrepareCustomCompileScripts) }:
         - Spawn: { Exe: powershell.exe, Arguments: -ExecutionPolicy Bypass "$(RepositoryRoot)\$(PrepareCustomCompileScript)" }
@@ -74,7 +79,7 @@
           Arguments: -Project="$(UProjectPath)" $(AdditionalArguments)
           AllowParallelExecutor: false
     
-    # Compile the client (targeting the Client target, not Game)
+    - //: Compile the client (targeting the Client target, not Game)
     - ForEach: { Name: TargetName, Values: $(GameTargets) }:
       - ForEach: { Name: TargetPlatform, Values: $(GameTargetPlatforms) }:
         - ForEach: { Name: TargetConfiguration, Values: $(GameConfigurations) }:
@@ -100,9 +105,9 @@
               Name: GameBinaries
               Value: [ $(GameBinaries), *game_binaries, ; ]
 
-  # Targets that we will execute on a Windows machine
+  - //: Targets that we will execute on a Windows machine
   - Agent: { Name: Windows Pak and Stage, Type: Win64, If: "'$(ExecuteBuild)' == 'true'" }:
-    # Pak and stage the game (targeting the Game target, not Client)
+    - //: Pak and stage the game (targeting the Game target, not Client)
     - ForEach: { Name: TargetName, Values: $(GameTargets) }:
       - ForEach: { Name: TargetPlatform, Values: $(GameTargetPlatforms) }:
         - ForEach: { Name: TargetConfiguration, Values: $(GameConfigurations) }:
@@ -171,7 +176,7 @@
               If: *target_platform_is_mac
 
   - Agent: { Name: Windows Gauntlet, Type: Win64, If: "'$(ExecuteTests)' == 'true'" }:
-    # Run all the defined Gauntlet tests when their dependencies are ready
+    - //: Run all the defined Gauntlet tests when their dependencies are ready
     - ForEach: { Name: GauntletPairs, Values: $(GauntletTests), Separator: "+" }:
       - Property: { Name: GauntletTestName, Value: "" }
       - Property: { Name: GauntletTestRequirements, Value: "" }
@@ -259,9 +264,9 @@
 
       - Property: { Name: DeploymentTasks, Value: $(DeploymentTasks)Deploy $(ManualMode) $(NodeName); }
 
-  # Targets that we will execute on a Windows machine
+  - //: Targets that we will execute on a Windows machine
   - Agent: { Name: Windows Tag, Type: Win64 }:
-    # Node that we just use to easily execute all required nodes
+    - //: Node that we just use to easily execute all required nodes
     - Node:
         Requires:
           $(GameStaged);

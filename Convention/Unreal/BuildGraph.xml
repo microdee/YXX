@@ -1,7 +1,10 @@
 <?xml version='1.0' ?>
 
-<!-- This is a simplified version of https://src.redpoint.games/redpointgames/unreal-engine-scripts/-/blob/main/Lib/BuildGraph_Project.xml?ref_type=heads -->
-<!-- Demonstrating only how a DSL which never ever should have been XML in the first place can be made more digestable with XYXC -->
+<!--
+  This is a simplified version of https://src.redpoint.games/redpointgames/unreal-engine-scripts/-/blob/main/Lib/BuildGraph_Project.xml?ref_type=heads
+  Demonstrating only how a DSL which never ever should have been XML in the first place can be made
+  more digestable with XYXC
+-->
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ./Schema.xsd" >
 
   <!-- Environment options -->

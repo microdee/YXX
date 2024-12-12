@@ -16,6 +16,11 @@ Not to be confused with *Abbotsford International Airport*
     - [YXX dealing with multiline text](#yxx-dealing-with-multiline-text)
     - [YXX dealing with non-string attribute values](#yxx-dealing-with-non-string-attribute-values)
       - [String concatenation](#string-concatenation)
+  - [Special XML nodes](#special-xml-nodes)
+    - [Comments](#comments)
+    - [Processing Instruction node](#processing-instruction-node)
+    - [Declaration node](#declaration-node)
+    - [Doctype node](#doctype-node)
 - [Bitter Recompense](#bitter-recompense)
 
 A convention for (almost)<sup>1</sup> lossless YAML <-> XML mapping, meaning that data expected as XML can have a 1:1 YAML representation without the loss of XML features. Its syntax should feel natural and should not have arbitrary symbols with special meaning (almost)<sup>2</sup>.
@@ -23,7 +28,12 @@ A convention for (almost)<sup>1</sup> lossless YAML <-> XML mapping, meaning tha
 Check out the couple of examples in this repository, if not in the mood to read walls of text.
 
 1. Almost because YXX embraces YAML anchors and aliases in ways which XML cannot support. So when a YXX document, using these extra features, is converted to their XML equivalent, and then that XML equivalent converted back to YXX, the extra features will be gone.
-2. Except the "null" or "empty" key representing the body of an XML tag
+2. Except couple of things:
+   1. The "null" or "empty" key representing the body of an XML tag with attributes written as block scalar
+   2. Comments are represented by special key `//` ([see Comments](#comments))
+   3. Declaration node is represented by special key `<?xml` ([see Declaration node](#declaration-node))
+   4. Processing instruction nodes are represented by `<?` prefix ([see Processing Instruction node](#processing-instruction-node))
+   5. Doctype nodes are represented by `<!` prefix ([see Doctype node](#doctype-node))
 
 # Motivation
 
@@ -92,6 +102,8 @@ These keys can even span multiple lines in which case they need to use explicit 
 ```
 
 This yaml feature could actually map nicely to specify both a list of attributes and a direct value for an entity in the document, however one part is still missing, the tag name.
+
+Fear not though, writing explicit key-value notation is very cumbersome, may look even uglier than XML, and defeats the purpose of being "human friendly". For these reasons YXX should never require the author to write documents with it.
 
 ### Anatomy of YXX tag objects
 
@@ -270,7 +282,7 @@ This means a kind of "mixed" XML/YAML mode is not allowed. The reasoning behind 
 
 As a cherry-picked counter example where YXX can shine instead of its original XML form is in BuildGraph which has a `<WriteTextFile>` tag where the contents of the file is meant to be specified in an attribute. In one line. I've seen people using it dumping entire powershell scripts in there. These are truly dark times we live in.
 
-## YAML <-> XML feature parity
+## YAML \<-\> XML feature parity
 
 YAML brings some both neat and/or controversial features XML doesn't have (it's easy to compete when one has two decades of head-start over the other), like anchors, aliases and object merging. YAML also can express some structures impossible to purely duplicate in XML without special tags, which YXX may utilize when converting from YAML to XML.
 
@@ -408,25 +420,21 @@ When converting from a nested array structure like this from YAML to XML, YXX fl
 
 ```xml
 <Schedule>
-  <!-- work_day -->
   <WakeUp />
   <Coffee />
   <GoToWork />
   <Code />
   <GoHome />
   <Sleep />
-  <!-- work_day -->
   <WakeUp />
   <Coffee />
   <GoToWork />
   <Code />
   <GoHome />
   <Sleep />
-  <!-- weekend -->
   <WakeUp />
   <VideoGames />
   <Sleep />
-  <!-- weekend -->
   <WakeUp />
   <VideoGames />
   <Sleep />
@@ -632,8 +640,82 @@ Obviously this is not meant to be written by hand (maybe for like one level of n
 
 </details>
 
+## Special XML nodes
+
+### Comments
+
+In YAML comments are impossible to be part of the document tree, which is by design so it is impossible to give them semantics, however in XML they can be fit into the DOM. For the former reason many YAML parsers, even event based ones may ignore comments entirely as if they weren't there.
+
+So preserving XML comments are done via special key `//` in YXX.
+
+```yaml
+# This comment will be ignored entirely
+- //: This comment will be preserved
+```
+
+renders
+
+```xml
+<!-- This comment will be preserved -->
+```
+
+### Processing Instruction node
+
+Much like custom YAML tags, processing instruction nodes are parser/application specific and have no standard formatting of their value. For this reason in YXX they're expressed as simple key-value pairs with `<?` prefix
+
+```yaml
+- <?display: table-view
+- <?sort: alpha-ascending
+- <?textinfo: whitespace is allowed
+- <?elementnames: <fred>, <bert>, <harry>
+```
+
+renders
+
+```xml
+<?display table-view?>
+<?sort alpha-ascending?>
+<?textinfo whitespace is allowed ?>
+<?elementnames <fred>, <bert>, <harry> ?>
+```
+
+### Declaration node
+
+XML declaration node is syntactically a special case of a processing instruction node but many parsers treat it differently with common attributes. YXX also treats declaration node differently, by allowing attributes as a mapping.
+
+```yaml
+# Simply put XML declaration before the root node.
+- <?xml: { version: 1.0, encoding: utf-8 }
+- MyRootNode: # ...
+```
+
+renders
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<MyRootNode />
+```
+
+### Doctype node
+
+In YXX doctype nodes are handled the exact same way as processing instruction nodes but with `<!` prefix:
+
+```yaml
+- <!DOCTYPE: html
+```
+
+renders
+
+```xml
+<!DOCTYPE html>
+```
+
 # Bitter Recompense
 
 > Comment: This looks cursed though, the examples are not more readable than their XML counterparts
 
 Good point, but YXX was not really meant to be used in these toy examples fitting inside a readme file. Check out [this monstrosity](https://src.redpoint.games/redpointgames/unreal-engine-scripts/-/blob/main/Lib/BuildGraph_Project.xml?ref_type=heads) which had to be developed by hand (at least I didn't find any tool in that repository which would generate this). YXX ambition is making authoring such documents slightly less of a pain.
+
+> Comment: What about Schemas?
+
+Indeed generating a YAML schema from XSD for YXX is not a trivial task. Especially when the only available cross-platform/cross-parser YAML schema is simply derived from JSON schema which might make more advanced YAML features YXX relies on impossible to describe. To my knowledge currently there's no standard YAML schema which can describe complex keys, but please correct me if I'm wrong.

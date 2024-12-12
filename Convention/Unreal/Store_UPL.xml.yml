@@ -1,21 +1,21 @@
-# <?xml version="1.0" encoding="utf-8"?>
+- <?xml: { version: 1.0, encoding: utf-8 }
 - root: { xmlns:android: http://schemas.android.com/apk/res/android }:
   - init:
     - log: { text: AndroidUtils Store UPL }
     - trace: { enabled: true }
 
-  # AndroidManifest.xml
+  - //: AndroidManifest.xml
   - androidManifestUpdates:
     - addElements: { tag: application }:
-      # meta tags required by Oculus/Meta store
+      - //: meta tags required by Oculus/Meta store
       - meta-data: { android:name: com.oculus.vr.focusaware, android:value: true }
 
-      # meta tags required by Vive Business Device Manager
+      - //: meta tags required by Vive Business Device Manager
       - meta-data: { android:name: com.htc.vr.content.NumDoFHmd, android:value: 6DoF }
       - meta-data: { android:name: com.htc.vr.content.NumDoFController, android:value: 6DoF }
       - meta-data: { android:name: com.htc.vr.content.NumController, android:value: 2 }
 
-    # activity
+    - //: activity
     - loopElements: { tag: activity }:
       - setStringFromAttribute: { result: activityName, tag: $, name: android:name }
       - setBoolIsEqual: { result: bGameActivity, arg1: $S(activityName), arg2: com.epicgames.ue4.GameActivity }
