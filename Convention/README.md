@@ -161,8 +161,13 @@ A tag object containing a single member, which key is representing the tag name,
 #                                                       Makes KA the key
 ```
 
-For example this XML
 
+For example this XML on the left is expressed with YAML on the right:
+
+<table>
+<tr>
+<td>
+  
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
@@ -172,7 +177,8 @@ For example this XML
 </Project>
 ```
 
-would map to the following YMAL following YXX:
+</td>
+<td>
 
 ```yaml
 - Project: { Sdk: Microsoft.NET.Sdk }:
@@ -181,13 +187,17 @@ would map to the following YMAL following YXX:
     - PackageReference: { Include: Nuke.Common, Version: 8.1.4 }
 ```
 
+</td>
+</tr>
+</table>
+
 To simplify talking about these entities we will assign them YXX specific names:
 
 ```yaml
 # tag object
 # tag key: tag scalar (not body!)
 - Project:
-    # attributes object
+    # attributes objectx
     # attribute key: attribute value
     Sdk: Microsoft.NET.Sdk
 
@@ -216,14 +226,20 @@ To simplify talking about these entities we will assign them YXX specific names:
 
 Much like how XML closing tag can be shortened, the contents under empty-key is also optional (see how that's missing in `PackageReference`)
 
-When tags with attributes doesn't have a body key, OR doesn't have a body scalar, OR when the tag body scalar is null (`""` empty string is not empty value neither null!) the XML tag is rendered with self closing slash. That means the following YXX YAML
+When tags with attributes doesn't have a body key, OR doesn't have a body scalar, OR when the tag body scalar is null (`""` empty string is not empty value neither null!) the XML tag is rendered with self closing slash. That means
+
+<table>
+<tr>
+<td>
 
 ```yaml
 - Project:
   - Foo:
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <Project>
@@ -231,9 +247,17 @@ renders
 </Project>
 ```
 
+</td>
+</tr>
+</table>
+
 ## Text rendering
 
 Non-object array items are simply rendered as text nodes inside the resulting XML, so
+
+<table>
+<tr>
+<td>
 
 ```yaml
 - div:
@@ -242,7 +266,9 @@ Non-object array items are simply rendered as text nodes inside the resulting XM
   - Closing thoughts
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <div>
@@ -251,6 +277,10 @@ renders
     Closing thoughts
 </div>
 ```
+
+</td>
+</tr>
+</table>
 
 This is a good segue into the **Markup** notion of XML and simply put how there's no natural feeling syntax for replicating it in YAML (well as the name suggest, it ain't being a markup language 😉 ). So this feature of XML can be only mapped with an awkward flow scalar array maybe
 
@@ -268,15 +298,25 @@ Eeew. Don't do that.
 
 Well YXX doesn't try to replace XML where XML shines anyway so moving on. Speaking of plain text or any string value, all text is escaped for xml so even writing
 
+<table>
+<tr>
+<td>
+
 ```yaml
 - p: we have <b>rich <i>text</i></b> markers
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <p>we have &lt;b&gt;rich &lt;i&gt;text&lt;/i&gt;&lt;/b&gt; markers</p>
 ```
+
+</td>
+</tr>
+</table>
 
 This means a kind of "mixed" XML/YAML mode is not allowed. The reasoning behind this is YXX is designed to be used in rigid systems where XML has been decided to represent structured data, where syntactical markup doesn't make much sense. In those scenarios it is more annoying to deal with XML encoded text than the possibility of inline markup, and imagine the absurdity that you'd have to XML encode your text in YAML.
 
@@ -395,6 +435,10 @@ output:
 
 When converting from a nested array structure like this from YAML to XML, YXX flatten nested arrays into the first layer. This allows to have a sequence of tags stored under one anchor, rather than needing an encompassing tag:
 
+<table>
+<tr>
+<td>
+
 ```yaml
 - Schedule:
   /vars:
@@ -416,7 +460,9 @@ When converting from a nested array structure like this from YAML to XML, YXX fl
   - *weekend
 ```
 
-<details><summary>Produces the following XML</summary>
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <Schedule>
@@ -441,9 +487,9 @@ When converting from a nested array structure like this from YAML to XML, YXX fl
 </Schedule>
 ```
 
-Converters may not comment the XML output.
-
-</details>
+</td>
+</tr>
+</table>
 
 ### YXX dealing with multiline text
 
@@ -493,6 +539,10 @@ In XML tag attributes can only have string values. YAML obviously doesn't pose s
 
 **Plain arrays are concatenated into a continuous string without any delimiter**
 
+<table>
+<tr>
+<td>
+
 ```yml
 - Tag:
     Attr:
@@ -500,13 +550,23 @@ In XML tag attributes can only have string values. YAML obviously doesn't pose s
       - World
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <Tag Attr="HelloWorld" />
 ```
 
+</td>
+</tr>
+</table>
+
 **Nested arrays are flattened as with tag bodies**
+
+<table>
+<tr>
+<td>
 
 ```yml
 - Tag:
@@ -517,13 +577,23 @@ renders
         - World
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <Tag Attr="FooBarHelloWorld" />
 ```
 
+</td>
+</tr>
+</table>
+
 **A delimiter can be specified with a specially formatted object**
+
+<table>
+<tr>
+<td>
 
 ```yml
 - Tag:
@@ -533,13 +603,23 @@ renders
       - World
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <Tag Attr="Hello World" />
 ```
 
+</td>
+</tr>
+</table>
+
 **Consistently flatten nested arrays**
+
+<table>
+<tr>
+<td>
 
 ```yml
 - Tag:
@@ -551,13 +631,23 @@ renders
         - World
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <Tag Attr="Foo Bar Hello World" />
 ```
 
+</td>
+</tr>
+</table>
+
 **Combine delimiters**
+
+<table>
+<tr>
+<td>
 
 ```yml
 - Tag:
@@ -571,11 +661,17 @@ renders
         - World
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <Tag Attr="Foo,Bar;Hello World" />
 ```
+
+</td>
+</tr>
+</table>
 
 > Ok David now please provide an explanation and an apology for coming up with such a feature
 
@@ -648,20 +744,34 @@ In YAML comments are impossible to be part of the document tree, which is by des
 
 So preserving XML comments are done via special key `//` in YXX.
 
+<table>
+<tr>
+<td>
+
 ```yaml
 # This comment will be ignored entirely
 - //: This comment will be preserved
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <!-- This comment will be preserved -->
 ```
 
+</td>
+</tr>
+</table>
+
 ### Processing Instruction node
 
 Much like custom YAML tags, processing instruction nodes are parser/application specific and have no standard formatting of their value. For this reason in YXX they're expressed as simple key-value pairs with `<?` prefix
+
+<table>
+<tr>
+<td>
 
 ```yaml
 - <?display: table-view
@@ -670,7 +780,9 @@ Much like custom YAML tags, processing instruction nodes are parser/application 
 - <?elementnames: <fred>, <bert>, <harry>
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <?display table-view?>
@@ -679,9 +791,17 @@ renders
 <?elementnames <fred>, <bert>, <harry> ?>
 ```
 
+</td>
+</tr>
+</table>
+
 ### Declaration node
 
 XML declaration node is syntactically a special case of a processing instruction node but many parsers treat it differently with common attributes. YXX also treats declaration node differently, by allowing attributes as a mapping.
+
+<table>
+<tr>
+<td>
 
 ```yaml
 # Simply put XML declaration before the root node.
@@ -689,26 +809,42 @@ XML declaration node is syntactically a special case of a processing instruction
 - MyRootNode: # ...
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <MyRootNode />
 ```
 
+</td>
+</tr>
+</table>
+
 ### Doctype node
 
 In YXX doctype nodes are handled the exact same way as processing instruction nodes but with `<!` prefix:
+
+<table>
+<tr>
+<td>
 
 ```yaml
 - <!DOCTYPE: html
 ```
 
-renders
+</td>
+<td> -> </td>
+<td>
 
 ```xml
 <!DOCTYPE html>
 ```
+
+</td>
+</tr>
+</table>
 
 # Bitter Recompense
 
