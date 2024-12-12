@@ -38,11 +38,11 @@ namespace yxx
             for (auto const& child : node.children())
                 Convert(o, child, args);
         }
-        // XML declaration nodes are conserved with `/?xml` key. In YXX this is formatted as a regular tag.
+        // XML declaration nodes are conserved with `<?xml` key. In YXX this is formatted as a regular tag.
         // Other processing instruction nodes are ignored as they are uncommon and can have any format. 
         if (node.type() == pugi::node_declaration)
         {
-            auto tag = Map(o) << YAML::Key << "/?xml" << YAML::Value;
+            auto tag = Map(o) << YAML::Key << "<?xml" << YAML::Value;
             {
                 auto attrs = Map(o) << YAML::Flow;
                 for (auto const& attr : node.attributes()) o << attr;
