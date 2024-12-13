@@ -319,7 +319,7 @@ Well YXX doesn't try to replace XML where XML shines anyway so moving on. Speaki
 
 This means a kind of "mixed" XML/YAML mode is not allowed. The reasoning behind this is YXX is designed to be used in rigid systems where XML has been decided to represent structured data, where syntactical markup doesn't make much sense. In those scenarios it is more annoying to deal with XML encoded text than the possibility of inline markup, and imagine the absurdity that you'd have to XML encode your text in YAML.
 
-As a cherry-picked counter example where YXX can shine instead of its original XML form is in BuildGraph which has a `<WriteTextFile>` tag where the contents of the file is meant to be specified in an attribute. In one line. I've seen people using it dumping entire powershell scripts in there. These are truly dark times we live in.
+As a cherry-picked counter example where YXX can shine instead of its original XML form is in BuildGraph which has a [`<WriteTextFile>`](https://github.com/microdee/YXX/blob/main/Convention/Unreal/BuildGraph.xml.yml#L136) tag where the contents of the file is meant to be specified in an attribute. In one line. I've seen people using it dumping entire powershell scripts in there. These are truly dark times we live in.
 
 ## YAML \<-\> XML feature parity
 
